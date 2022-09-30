@@ -102,7 +102,7 @@ if (MSVC)
   else(BUILD_SHARED_LIBS)
     target_compile_definitions (GLEW PRIVATE "GLEW_STATIC;VC_EXTRALEAN")
   endif(BUILD_SHARED_LIBS)
-    target_link_libraries (GLEW LINK_PRIVATE -BASE:0x62AA0000)
+  target_link_libraries (GLEW LINK_PRIVATE -BASE:0x62AA0000)
   # kill security checks which are dependent on stdlib
   target_compile_options (GLEW PRIVATE -GS-)
   # remove stdlib dependency
@@ -135,7 +135,7 @@ else()
   if(NOT BUILD_SHARED_LIBS)
     target_compile_definitions(GLEW INTERFACE "GLEW_STATIC")
   endif(NOT BUILD_SHARED_LIBS)
-      target_include_directories(GLEW PUBLIC $<INSTALL_INTERFACE:include>)
+  target_include_directories(GLEW PUBLIC $<INSTALL_INTERFACE:include>)
   set(MAYBE_EXPORT EXPORT glew-targets)
 endif()
 
