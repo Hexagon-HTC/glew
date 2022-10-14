@@ -10,7 +10,7 @@ include ../config/version
 #GLEW_SPLIT_SOURCE = yes
 
 SHELL = bash
-PYTHON ?= python
+PYTHON ?= python3
 
 ### Use git repository for GL extension specifications
 
