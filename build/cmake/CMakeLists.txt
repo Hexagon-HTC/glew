@@ -94,17 +94,17 @@ endif ()
 include_directories (${GLEW_DIR}/include ${X11_INCLUDE_DIR})
 
 set (GLEW_PUBLIC_HEADERS_FILES ${GLEW_DIR}/include/GL/wglew.h ${GLEW_DIR}/include/GL/glew.h ${GLEW_DIR}/include/GL/glxew.h)
-set (GLEW_SRC_FILES ${GLEW_DIR}/src/glew.c)
+set (GLEW_FILES ${GLEW_DIR}/src/glew.c)
 
 if (WIN32)
-  list (APPEND GLEW_SRC_FILES ${GLEW_DIR}/build/glew.rc)
+  list (APPEND GLEW_FILES ${GLEW_DIR}/build/glew.rc)
 endif ()
 
 if(BUILD_SHARED_LIBS)
-  add_library (GLEW SHARED ${GLEW_PUBLIC_HEADERS_FILES} ${GLEW_SRC_FILES})
+  add_library (GLEW SHARED ${GLEW_PUBLIC_HEADERS_FILES} ${GLEW_FILES})
   set_target_properties (GLEW PROPERTIES COMPILE_DEFINITIONS "GLEW_BUILD" OUTPUT_NAME "${GLEW_LIB_NAME}")
 else(BUILD_SHARED_LIBS)
-  add_library (GLEW STATIC ${GLEW_PUBLIC_HEADERS_FILES} ${GLEW_SRC_FILES})
+  add_library (GLEW STATIC ${GLEW_PUBLIC_HEADERS_FILES} ${GLEW_FILES})
   set_target_properties (GLEW PROPERTIES COMPILE_DEFINITIONS "GLEW_STATIC" OUTPUT_NAME "${GLEW_LIB_NAME}")
 endif(BUILD_SHARED_LIBS)
 
