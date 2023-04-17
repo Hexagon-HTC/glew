@@ -1,10 +1,9 @@
+cmake_minimum_required (VERSION 2.8.12)
+project (glew C)
+
 if ( NOT DEFINED CMAKE_BUILD_TYPE )
   set( CMAKE_BUILD_TYPE Release CACHE STRING "Build type" )
 endif ()
-
-project (glew C)
-
-cmake_minimum_required (VERSION 2.8.12)
 
 include(GNUInstallDirs)
 
