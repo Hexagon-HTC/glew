@@ -10,7 +10,7 @@ include ../config/version
 #GLEW_SPLIT_SOURCE = yes
 
 SHELL = bash
-PYTHON := $(if $(shell command -v python3), python3, python)
+PYTHON ?= python
 
 EXT          = extensions/gl
 CORE         = core/gl
