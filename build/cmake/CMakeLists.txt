@@ -16,7 +16,6 @@ if(POLICY CMP0042)
   cmake_policy (SET CMP0042 NEW)
 endif()
 
-set(CMAKE_DEBUG_POSTFIX d)
 
 option (BUILD_UTILS "utilities" ON)
 option (GLEW_REGAL "Regal mode" OFF)
@@ -40,19 +39,16 @@ set (CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set (CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-find_package (OpenGL REQUIRED)
+if (WIN32)
+	find_package (OpenGL REQUIRED)
+endif()
 
 # X11 required except for Windows and Apple OSX platforms
 if (NOT WIN32 AND NOT APPLE)
   find_package (X11)
 endif()
 
-if (WIN32)
-  set (GLEW_LIB_NAME glew32)
-else ()
-  set (GLEW_LIB_NAME GLEW)
-  set (DLL_PREFIX lib)
-endif ()
+set (GLEW_LIB_NAME glew)
 
 set (GLEW_LIBRARIES ${OPENGL_LIBRARIES} ${X11_LIBRARIES})
 
@@ -104,36 +100,34 @@ if (WIN32)
   list (APPEND GLEW_SRC_FILES ${GLEW_DIR}/build/glew.rc)
 endif ()
 
-add_library (glew SHARED ${GLEW_PUBLIC_HEADERS_FILES} ${GLEW_SRC_FILES})
-set_target_properties (glew PROPERTIES COMPILE_DEFINITIONS "GLEW_BUILD" OUTPUT_NAME "${GLEW_LIB_NAME}" PREFIX "${DLL_PREFIX}"
-                                       VERSION ${GLEW_VERSION}
-                                       SOVERSION ${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR})
-add_library (glew_s STATIC ${GLEW_PUBLIC_HEADERS_FILES} ${GLEW_SRC_FILES})
-set_target_properties (glew_s PROPERTIES COMPILE_DEFINITIONS "GLEW_STATIC" OUTPUT_NAME "${GLEW_LIB_NAME}" PREFIX lib)
+if(BUILD_SHARED_LIBS)
+  add_library (GLEW SHARED ${GLEW_PUBLIC_HEADERS_FILES} ${GLEW_SRC_FILES})
+  set_target_properties (GLEW PROPERTIES COMPILE_DEFINITIONS "GLEW_BUILD" OUTPUT_NAME "${GLEW_LIB_NAME}")
+else(BUILD_SHARED_LIBS)
+  add_library (GLEW STATIC ${GLEW_PUBLIC_HEADERS_FILES} ${GLEW_SRC_FILES})
+  set_target_properties (GLEW PROPERTIES COMPILE_DEFINITIONS "GLEW_STATIC" OUTPUT_NAME "${GLEW_LIB_NAME}")
+endif(BUILD_SHARED_LIBS)
 
 if (MSVC)
   # add options from visual studio project
-  target_compile_definitions (glew PRIVATE "GLEW_BUILD;VC_EXTRALEAN")
-  target_compile_definitions (glew_s PRIVATE "GLEW_STATIC;VC_EXTRALEAN")
-  target_link_libraries (glew LINK_PRIVATE -BASE:0x62AA0000)
+  if(BUILD_SHARED_LIBS)
+    target_compile_definitions (GLEW PRIVATE "GLEW_BUILD;VC_EXTRALEAN")
+  else(BUILD_SHARED_LIBS)
+    target_compile_definitions (GLEW PRIVATE "GLEW_STATIC;VC_EXTRALEAN")
+  endif(BUILD_SHARED_LIBS)
+  target_link_libraries (GLEW LINK_PRIVATE -BASE:0x62AA0000)
   # kill security checks which are dependent on stdlib
-  target_compile_options (glew PRIVATE -GS-)
-  target_compile_options (glew_s PRIVATE -GS-)
-  # remove stdlib dependency
-  target_link_libraries (glew LINK_PRIVATE -nodefaultlib -noentry)
-  target_link_libraries (glew LINK_PRIVATE libvcruntime.lib)
-  target_link_libraries (glew LINK_PRIVATE msvcrt.lib )
+  target_compile_options (GLEW PRIVATE -GS-)
   string(REGEX REPLACE "/RTC(su|[1su])" "" CMAKE_C_FLAGS_DEBUG ${CMAKE_C_FLAGS_DEBUG})
 elseif (WIN32 AND ((CMAKE_C_COMPILER_ID MATCHES "GNU") OR (CMAKE_C_COMPILER_ID MATCHES "Clang")))
   # remove stdlib dependency on windows with GCC and Clang (for similar reasons
   # as to MSVC - to allow it to be used with any Windows compiler)
-  target_compile_options (glew PRIVATE -fno-builtin -fno-stack-protector)
-  target_compile_options (glew_s PRIVATE -fno-builtin -fno-stack-protector)
-  target_link_libraries (glew LINK_PRIVATE -nostdlib)
+  target_compile_options (GLEW PRIVATE -fno-builtin -fno-stack-protector)
+  target_link_libraries (GLEW LINK_PRIVATE -nostdlib)
 endif ()
 
 if (BUILD_FRAMEWORK)
-  set_target_properties(glew PROPERTIES
+  set_target_properties(GLEW PROPERTIES
     FRAMEWORK TRUE
     FRAMEWORK_VERSION ${GLEW_VERSION}
     MACOSX_FRAMEWORK_IDENTIFIER net.sourceforge.glew
@@ -145,26 +139,25 @@ if (BUILD_FRAMEWORK)
   )
 endif()
 
-target_link_libraries (glew LINK_PUBLIC ${GLEW_LIBRARIES})
-target_link_libraries (glew_s ${GLEW_LIBRARIES})
+target_link_libraries (GLEW LINK_PUBLIC ${GLEW_LIBRARIES})
 
 if(CMAKE_VERSION VERSION_LESS 2.8.12)
   set(MAYBE_EXPORT "")
 else()
-  target_compile_definitions(glew_s INTERFACE "GLEW_STATIC")
-  foreach(t glew glew_s)
-    target_include_directories(${t} PUBLIC $<INSTALL_INTERFACE:include>)
-  endforeach()
+  if(NOT BUILD_SHARED_LIBS)
+    target_compile_definitions(GLEW INTERFACE "GLEW_STATIC")
+  endif()
+  target_include_directories(GLEW PUBLIC $<INSTALL_INTERFACE:include>)
   set(MAYBE_EXPORT EXPORT glew-targets)
 endif()
 
 set(targets_to_install "")
 if(NOT DEFINED BUILD_SHARED_LIBS OR BUILD_SHARED_LIBS)
-  list(APPEND targets_to_install glew)
+  list(APPEND targets_to_install GLEW)
 endif()
 
 if(NOT DEFINED BUILD_SHARED_LIBS OR NOT BUILD_SHARED_LIBS)
-  list(APPEND targets_to_install glew_s)
+  list(APPEND targets_to_install GLEW)
 endif()
 
 install ( TARGETS ${targets_to_install}
@@ -182,9 +175,9 @@ if (BUILD_UTILS)
   endif ()
   add_executable (glewinfo ${GLEWINFO_SRC_FILES})
   if(NOT DEFINED BUILD_SHARED_LIBS OR BUILD_SHARED_LIBS)
-     target_link_libraries (glewinfo glew)
+     target_link_libraries (glewinfo GLEW)
   else()
-     target_link_libraries (glewinfo glew_s)
+     target_link_libraries (glewinfo GLEW)
   endif()
   if (NOT WIN32)
     target_link_libraries(glewinfo ${X11_LIBRARIES})
@@ -196,9 +189,9 @@ if (BUILD_UTILS)
   endif ()
   add_executable (visualinfo ${VISUALINFO_SRC_FILES})
   if(NOT DEFINED BUILD_SHARED_LIBS OR BUILD_SHARED_LIBS)
-     target_link_libraries (visualinfo glew)
+     target_link_libraries (visualinfo GLEW)
   else()
-     target_link_libraries (visualinfo glew_s)
+     target_link_libraries (visualinfo GLEW)
   endif()
   if (NOT WIN32)
     target_link_libraries(visualinfo ${X11_LIBRARIES})
@@ -222,20 +215,6 @@ if (APPLE)
   set (requireslib)
 endif ()
 
-configure_file (${GLEW_DIR}/glew.pc.in ${CMAKE_CURRENT_BINARY_DIR}/glew.pc @ONLY)
-
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/glew.pc
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
-)
-
-if(WIN32 AND MSVC AND (NOT MSVC_VERSION LESS 1600) AND (NOT CMAKE_VERSION VERSION_LESS "3.1"))
-    install(
-        FILES $<TARGET_PDB_FILE:glew>
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        CONFIGURATIONS Debug RelWithDebInfo
-    )
-endif()
-
 install (FILES
     ${GLEW_DIR}/include/GL/wglew.h
     ${GLEW_DIR}/include/GL/glew.h
@@ -247,7 +226,6 @@ if(MAYBE_EXPORT)
     NAMESPACE GLEW::)
   install(FILES
       ${CMAKE_CURRENT_SOURCE_DIR}/glew-config.cmake
-      ${CMAKE_CURRENT_SOURCE_DIR}/CopyImportedTargetProperties.cmake
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/glew)
 endif()
 
