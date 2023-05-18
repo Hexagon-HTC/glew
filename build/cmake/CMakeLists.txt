@@ -43,7 +43,7 @@ if (WIN32)
 endif()
 
 # X11 required except for Windows and Apple OSX platforms
-if (NOT WIN32 AND NOT APPLE)
+if (NOT WIN32 AND NOT APPLE AND NOT ANDROID)
   find_package (X11)
 endif()
 
